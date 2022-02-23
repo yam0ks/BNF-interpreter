@@ -1,11 +1,11 @@
 #include "translatorwindow.h"
 #include <QApplication>
-#include <QDebug>
+#include "interpretor.h"
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     TranslatorWindow w;
-    w.show();
+    w.show();    
     return a.exec();
 }

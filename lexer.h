@@ -3,74 +3,109 @@
 #pragma once
 
 #include <QString>
-#include <variant>
 #include <QRegularExpression>
-#include <QVector>
+#include <vector>
+#include <memory>
 #include <QtMath>
 #include <QLocale>
 
 namespace TokenType {
 
-    struct Number{
-        long long value;
+enum class Types{
+    Number,
+    Real,
+    Start,
+    Stop,
+    First,
+    Second,
+    Third,
+    Fourth,
+    Char,
+    Variable,
+    Operation,
+    Function
+};
+
+    struct BaseToken{
+        BaseToken(const int b_idx, const int e_idx, Types t, const QString& val)
+            : begin_idx(b_idx), end_idx(e_idx), type(t), value(val){}
+
         int begin_idx;
         int end_idx;
-    };
-
-    struct Real{
-        double value;
-        int begin_idx;
-        int end_idx;
-    };
-
-    struct LanguageKey{
+        Types type;
         QString value;
-        int begin_idx;
-        int end_idx;
     };
 
-    struct LinkKey{
-        QString value;
-        int begin_idx;
-        int end_idx;
+    struct Number  : public BaseToken{
+        Number(const int b_idx, const int e_idx, Types type, const QString& val)
+            : BaseToken(b_idx, e_idx, type, val){}
     };
 
-    struct Char{
-        QChar value;
-        int begin_idx;
-        int end_idx;
+    struct Real : public BaseToken{
+        Real(const int b_idx, const int e_idx, Types type, const QString& val)
+            : BaseToken(b_idx, e_idx, type, val){}
     };
 
-    struct Variable{
-        QString value;
-        int begin_idx;
-        int end_idx;
+    struct Start : public BaseToken{
+        Start(const int b_idx, const int e_idx, Types type)
+            : BaseToken(b_idx, e_idx, type, "Start"){}
     };
 
-    struct Operation{
-        QChar value;
-        int begin_idx;
-        int end_idx;
+    struct Stop : public BaseToken{
+        Stop(const int b_idx, const int e_idx, Types type)
+            : BaseToken(b_idx, e_idx, type, "Stop"){}
     };
 
-    struct Function{
-        QString value;
-        int begin_idx;
-        int end_idx;
+    struct First : public BaseToken{
+        First(const int b_idx, const int e_idx, Types type)
+            : BaseToken(b_idx, e_idx, type, "Первое"){}
+    };
+
+    struct Second : public BaseToken{
+        Second(const int b_idx, const int e_idx, Types type)
+            : BaseToken(b_idx, e_idx, type, "Второе"){}
+    };
+
+    struct Third : public BaseToken{
+        Third(const int b_idx, const int e_idx, Types type)
+            : BaseToken(b_idx, e_idx, type, "Third"){}
+    };
+
+    struct Fourth : public BaseToken{
+        Fourth(const int b_idx, const int e_idx, Types type)
+            : BaseToken(b_idx, e_idx, type, "Fourth"){}
+    };
+
+    struct Char : public BaseToken{
+        Char(const int b_idx, const int e_idx, Types type, const QChar val)
+            : BaseToken(b_idx, e_idx, type, val){}
+    };
+
+    struct Variable : public BaseToken{
+        Variable(const int b_idx, const int e_idx, Types type, const QString& val)
+            : BaseToken(b_idx, e_idx, type, val){}
+    };
+
+    struct Operation : public BaseToken{
+        Operation(const int b_idx, const int e_idx, Types type, const QChar val)
+            : BaseToken(b_idx, e_idx, type, val){}
+    };
+
+    struct Function : public BaseToken{
+        Function(const int b_idx, const int e_idx, Types type, const QString& val)
+            : BaseToken(b_idx, e_idx, type, val){}
     };
 }
 
-using Token = std::variant<
-  TokenType::Number,
-  TokenType::Real,
-  TokenType::LanguageKey,
-  TokenType::LinkKey,
-  TokenType::Char,
-  TokenType::Operation,
-  TokenType::Function,
-  TokenType::Variable
->;
+using Token = std::shared_ptr<TokenType::BaseToken>;
 
+enum class HighLiteOption{
+    Between,
+    Right,
+    Left,
+    Both,
+    None
+};
 
 class Lexer
 {
@@ -78,99 +113,116 @@ public:
     Lexer();
 
     template <typename Siterator>
-    Siterator word_begin(Siterator from){
-        return std::find_if_not(from, code.end(), [](const QChar symbol){
-            return symbol == ' ';
+    std::tuple<int, int, QString> ConvertToken(Siterator begin, Siterator end, const QString& code){
+        int idx_begin = begin - code.begin();
+        int idx_end = end - code.begin();
+
+        if(CheckIfNumber(begin, end)){
+            if(*begin == '0' && std::next(begin) != end)
+                return SendError(idx_begin, idx_end, "Parser error! Целое число не может начинаться с нуля.");
+
+            if(!IsOctalDigit(begin ,end))
+                return SendError(idx_begin, idx_end, "Parser error! Возможны только числа восьмеричного формата");
+
+            bool ok = true; BuildString(begin, end).toLongLong(&ok);
+
+            if(!ok)
+                return SendError(idx_begin, idx_end, "Parser error! Превышен лимит размера числа");
+
+            tokens.push_back(std::make_shared<TokenType::Number>(idx_begin, idx_end, TokenType::Types::Number, BuildString(begin, end)));
+            return SendOk();
+        }
+
+        if(CheckIfReal(begin, end)){
+            if(*begin == '0' && *std::next(begin) != '.')
+                return SendError(idx_begin, idx_end, "Parser error! Неверное количество разрядов в вещественном числе с отсутствующей целой частью.");
+
+            if(!IsOctalDigit(begin ,end))
+                return SendError(idx_begin, idx_end, "Parser error! Возможны только числа восьмеричного формата");
+
+            bool ok = true; BuildString(begin, end).toDouble(&ok);
+
+            if(!ok)
+                return SendError(idx_begin, idx_end, "Parser error! Превышен лимит размера числа");
+
+            tokens.push_back(std::make_shared<TokenType::Real>(idx_begin, idx_end, TokenType::Types::Real, BuildString(begin, end)));
+            return SendOk();
+        }
+
+        if(CheckIfOperation(begin)){
+            tokens.push_back(std::make_shared<TokenType::Operation>(idx_begin, idx_end, TokenType::Types::Operation, *begin));
+            return SendOk();
+        }
+
+        if(CheckIfChar(begin)){
+            tokens.push_back(std::make_shared<TokenType::Char>(idx_begin, idx_end, TokenType::Types::Char, *begin));
+            return SendOk();
+        }
+
+        if(CheckIfStart(begin, end)){
+            tokens.push_back(std::make_shared<TokenType::Start>(idx_begin, idx_end, TokenType::Types::Start));
+            return SendOk();
+        }
+
+        if(CheckIfStop(begin, end)){
+            tokens.push_back(std::make_shared<TokenType::Stop>(idx_begin, idx_end, TokenType::Types::Stop));
+            return SendOk();
+        }
+
+        if(CheckIfFirst(begin, end)){
+            tokens.push_back(std::make_shared<TokenType::First>(idx_begin, idx_end, TokenType::Types::First));
+            return SendOk();
+        }
+
+        if(CheckIfSecond(begin, end)){
+            tokens.push_back(std::make_shared<TokenType::Second>(idx_begin, idx_end, TokenType::Types::Second));
+            return SendOk();
+        }
+
+        if(CheckIfThird(begin, end)){
+            tokens.push_back(std::make_shared<TokenType::Third>(idx_begin, idx_end, TokenType::Types::Third));
+            return SendOk();
+        }
+
+        if(CheckIfFourth(begin, end)){
+            tokens.push_back(std::make_shared<TokenType::Fourth>(idx_begin, idx_end, TokenType::Types::Fourth));
+            return SendOk();
+        }
+
+        if(CheckIfFunction(begin, end)){
+            tokens.push_back(std::make_shared<TokenType::Function>(idx_begin, idx_end, TokenType::Types::Function, BuildString(begin, end)));
+            return SendOk();
+        }
+
+        if(CheckIfVariable(begin, end)){
+            tokens.push_back(std::make_shared<TokenType::Variable>(idx_begin, idx_end, TokenType::Types::Variable, BuildString(begin, end)));
+            return SendOk();
+        }
+
+        return SendError(idx_begin, idx_end, "Parser error! Неизвестный терминал: " + BuildString(begin, end));
+    }
+
+    std::tuple<int, int, QString> Parse(QString&& code);
+
+    const std::vector<Token>& GetTokens() const;
+
+private:
+    template <typename Siterator>
+    Siterator word_begin(Siterator from, Siterator to){
+        return std::find_if_not(from, to, [](const QChar symbol){
+            return QRegularExpression(R"([\s\t])").match(symbol).hasMatch();;
         });
     }
 
     template <typename Siterator>
-    Siterator word_end(Siterator from){
-        auto it = std::find_if(from, code.end(), [](const QChar symbol){
-            return QRegularExpression(R"([:|,|;|=|\s|+|\-|*|\/|&|\||!])").match(symbol).hasMatch();
+    Siterator word_end(Siterator from, Siterator to){
+        auto it = std::find_if(from, to, [](const QChar symbol){
+            return QRegularExpression(R"([:,;=\s+\-*\/&|!\t])").match(symbol).hasMatch();
         });
 
         return (from == it) ? ++it : it;
     }
 
-    template <typename Siterator>
-    std::tuple<int, int, QString> ConvertToken(Siterator begin, Siterator end){
-        int idx_begin = begin - code.begin();
-        int idx_end = end - code.begin();
-
-        if(CheckIfNumber(begin, end)){
-            if(!IsOctalDigit(begin ,end))
-                return {idx_begin, idx_end, "Возможны только числа восьмеричного формата"};
-
-            bool ok = true; long long result = BuildString(begin, end).toLongLong(&ok);
-
-            if(!ok)
-                return {idx_begin, idx_end, "Превышен лимит размера числа"};
-
-            auto qwe = Token(TokenType::Number{result, idx_begin, idx_end});
-            tokens.push_back(qwe);
-            return {-1, -1, "OK"};
-        }
-
-        if(CheckIfReal(begin, end)){
-            if(!IsOctalDigit(begin ,end))
-                return {idx_begin, idx_end, "Возможны только числа восьмеричного формата"};
-
-            bool s_ok, f_ok = true; double result = ConvertToDouble(begin, end, s_ok, f_ok);
-
-            if(!s_ok || !f_ok)
-                return {begin - code.begin(), end - code.begin(), "Превышен лимит размера числа"};
-
-            auto qwe = Token(TokenType::Real{result, idx_begin, idx_end});
-            tokens.push_back(qwe);
-            return {-1, -1, "OK"};
-        }
-
-        if(CheckIfVariable(begin, end)){
-            auto qwe = Token(TokenType::Variable{BuildString(begin, end), idx_begin, idx_end});
-            tokens.push_back(qwe);
-            return {-1, -1, "OK"};
-        }
-
-        if(CheckIfOperation(begin)){
-            auto qwe = Token(TokenType::Operation{*begin, idx_begin, idx_end});
-            tokens.push_back(qwe);
-            return {-1, -1, "OK"};
-        }
-
-        if(CheckIfChar(begin)){
-            auto qwe = Token(TokenType::Char{*begin, idx_begin, idx_end});
-            tokens.push_back(qwe);
-            return {-1, -1, "OK"};
-        }
-
-        if(CheckIfLanguageKey(begin, end)){
-            auto qwe = Token(TokenType::LanguageKey{BuildString(begin, end), idx_begin, idx_end});
-            tokens.push_back(qwe);
-            return {-1, -1, "OK"};
-        }
-
-        if(CheckIfLinkKey(begin, end)){
-            auto qwe = Token(TokenType::LinkKey{BuildString(begin, end), idx_begin, idx_end});
-            tokens.push_back(qwe);
-            return {-1, -1, "OK"};
-        }
-
-        if(CheckIfFunction(begin, end)){
-            auto qwe = Token(TokenType::Function{BuildString(begin, end), idx_begin, idx_end});
-            tokens.push_back(qwe);
-            return {-1, -1, "OK"};
-        }
-
-        return {idx_begin, idx_end, "Неизвестный терминал: " + BuildString(begin, end)};
-    }
-
-    std::tuple<int, int, QString> Parse();
-    void SetCode(const QString& input_code);
-    void PrepareCode();
-    void ClearTokens();
-
-private:
     template <typename Siterator>
     bool CheckIfNumber(Siterator begin, Siterator end) const{
         while (begin != end && (*begin).isDigit())++begin;
@@ -193,13 +245,33 @@ private:
     }
 
     template <typename Siterator>
-    bool CheckIfLanguageKey(Siterator begin, Siterator end) const{
-        return language_keys.contains(BuildString(begin, end));
+    bool CheckIfStart(Siterator begin, Siterator end) const{
+        return BuildString(begin, end) == "Start";
     }
 
     template <typename Siterator>
-    bool CheckIfLinkKey(Siterator begin, Siterator end) const{
-        return link_keys.contains(BuildString(begin, end));
+    bool CheckIfStop(Siterator begin, Siterator end) const{
+        return BuildString(begin, end) == "Stop";
+    }
+
+    template <typename Siterator>
+    bool CheckIfFirst(Siterator begin, Siterator end) const{
+        return BuildString(begin, end) == "Первое";
+    }
+
+    template <typename Siterator>
+    bool CheckIfSecond(Siterator begin, Siterator end) const{
+        return BuildString(begin, end) == "Второе";
+    }
+
+    template <typename Siterator>
+    bool CheckIfThird(Siterator begin, Siterator end) const{
+        return BuildString(begin, end) == "Third";
+    }
+
+    template <typename Siterator>
+    bool CheckIfFourth(Siterator begin, Siterator end) const{
+        return BuildString(begin, end) == "Fourth";
     }
 
     template <typename Siterator>
@@ -240,21 +312,11 @@ private:
     }
 
     template <typename Siterator>
-    double ConvertToDouble(Siterator begin, Siterator end, bool& f_ok, bool& s_ok) const{
-        auto it = std::find(begin, end, '.');
-
-        int integer = BuildString(begin, it).toLongLong(&f_ok);
-        int fraction = BuildString(++it, end).toLongLong(&s_ok);
-
-        return integer + fraction / qPow(10, end - ++it);
-    }
-
-    template <typename Siterator>
     QString BuildString(Siterator begin, Siterator end) const{
         QString result;
 
-        for(; begin != end; ++begin)
-            result += *begin;
+        result.resize(end - begin);
+        std::copy(begin, end, result.begin());
 
         return result;
     }
@@ -267,10 +329,18 @@ private:
         return begin == end;
     }
 
-    QString code;
-    QVector<Token> tokens;
-    QVector<QString> language_keys = {"start", "stop"};
-    QVector<QString> link_keys = {"первое", "второе", "third", "fourth"};
+    void PrepareCode(QString& code);
+    void ClearTokens();
+
+    std::tuple<int, int, QString> SendOk(){
+        return {-1, -1, "OK"};
+    }
+
+    std::tuple<int, int, QString> SendError(const int b_idx, const int e_idx, const QString& error){
+        return {b_idx, e_idx, error};
+    }
+
+    std::vector<Token> tokens;
     QVector<QChar> chars = {';', ':', ',', '='};
     QVector<QChar> operations = {'+', '-', '*', '/', '&', '|', '!'};
     QVector<QString> functions = {"sin", "cos", "tg", "ctg"};

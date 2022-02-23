@@ -1,7 +1,7 @@
 #ifndef TRANSLATORWINDOW_H
 #define TRANSLATORWINDOW_H
 
-#include "lexer.h"
+#include "interpretor.h"
 #include <QMainWindow>
 
 QT_BEGIN_NAMESPACE
@@ -22,6 +22,6 @@ private slots:
 
 private:
     Ui::TranslatorWindow *ui;
-    Lexer lx;
+    Interpretor in;
 };
 #endif // TRANSLATORWINDOW_H

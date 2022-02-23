@@ -4,45 +4,40 @@ Lexer::Lexer()
 {
 }
 
-std::tuple<int, int, QString> Lexer::Parse()
+std::tuple<int, int, QString> Lexer::Parse(QString&& code)
 {
     if(code.isEmpty())
-        return {-1, -1, "OK"};
+        return SendError(0, 0, "Parser Error! На вход подана пустая программа.");
 
-    PrepareCode();
+    PrepareCode(code);
+    ClearTokens();
 
     auto begin = code.begin();
     auto end = code.begin();
 
     while(end != code.end()){
-        begin = word_begin(end); end = word_end(begin);
+        begin = word_begin(end, code.end()); end = word_end(begin, code.end());
 
-        auto [s_pos, e_pos, error] = ConvertToken(begin, end);
+        auto [s_pos, e_pos, error] = ConvertToken(begin, end, code);
 
         if(error != "OK")
-                return {s_pos, e_pos, error};
+                return SendError(s_pos, e_pos, error);
     }
 
-    return {-1, -1, "OK"};
+    return SendOk();
 }
 
-void Lexer::SetCode(const QString &input_code)
+const std::vector<Token> &Lexer::GetTokens() const
 {
-    code = input_code;
+    return tokens;
 }
 
-void Lexer::PrepareCode()
+void Lexer::PrepareCode(QString& code)
 {
     code.replace('\n', ' ');
 
-    std::string code_copy = code.toStdString();
-
-    if(size_t found = code_copy.find_last_not_of(' '); found != std::string::npos)
-        code_copy.erase(found + 1);
-
-    code = QString::fromStdString(code_copy);
-
-    code = code.toLower();
+    auto end_idx = code.lastIndexOf(QRegularExpression(R"(\S)"));
+    code.remove(end_idx + 1, code.length() - end_idx);
 }
 
 void Lexer::ClearTokens()

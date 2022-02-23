@@ -16,13 +16,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    analyzer.cpp \
     codeeditor.cpp \
+    interpretor.cpp \
     lexer.cpp \
     main.cpp \
     translatorwindow.cpp
 
 HEADERS += \
+    analyzer.h \
     codeeditor.h \
+    interpretor.h \
     lexer.h \
     translatorwindow.h
 
