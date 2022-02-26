@@ -24,7 +24,7 @@ private:
     std::tuple<int, int, QString> EvaluateExpr(const std::vector<Token>& expression);
 
     int Opriority(const QString& op);
-    bool Evaluate(std::stack<double>& values, const QString& op);
+    QString Evaluate(std::stack<double>& values, const QString& op);
 
     double InverseValue(const double value);
 

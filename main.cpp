@@ -1,6 +1,5 @@
 #include "translatorwindow.h"
 #include <QApplication>
-#include "interpretor.h"
 
 int main(int argc, char *argv[])
 {
@@ -9,3 +8,4 @@ int main(int argc, char *argv[])
     w.show();    
     return a.exec();
 }
+//переполнение

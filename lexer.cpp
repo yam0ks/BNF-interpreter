@@ -45,6 +45,17 @@ void Lexer::ClearTokens()
     tokens.clear();
 }
 
+QString Lexer::CheckLimits(const QString &value)
+{
+    QStringList parts = value.split(".");
+
+    if(parts[0].length() > 8)
+        return "Parser Error! Целая часть превышает лимит размера.";
+    if(parts.size() == 2 && parts[1].length() > 6)
+        return "Parser Error! Дробная часть превышает лимит размера.";
+    return QString();
+}
+
 bool Lexer::IsOctalDigit(const QChar symbol) const
 {
     return symbol > QChar(47) && symbol < QChar(56);
