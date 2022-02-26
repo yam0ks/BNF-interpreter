@@ -80,8 +80,10 @@ private:
                                                                         + begin->get()->value + " " + next(begin)->get()->value);
                     else if(!Expect(next(begin), end, TokenType::Types::Number) && !FirstIteration){
                         if(Expect(next(begin), end, ',')){
-                            if(next(begin, 2) == end || (!Expect(next(begin, 2), end, TokenType::Types::Number) && !Expect(next(begin, 3), end, ',')))
-                                    break;
+                            if(next(begin, 2) == end)
+                                return SendError(next(begin), end, "Analyzer Error! После запятой в конце звена ожидается целое число, либо очередное звено.");
+                            if(!Expect(next(begin, 2), end, TokenType::Types::Number) && !Expect(next(begin, 3), end, ','))
+                                break;
                         }
                         else break;
                     }
@@ -155,13 +157,6 @@ private:
                 return SendError(begin, end, "Analyzer Error! Метка должна являться целым числом. "
                                                                             + begin->get()->value);
 
-            QVector<QString> reserved_words = {"sin", "cos", "tg", "ctg", "Start", "Stop", "Первое", "Второе", "Third", "Fourth"};
-
-            for(const auto& word : reserved_words){
-                if(auto variable = begin->get()->value; variable.contains(word))
-                    return SendError(begin, end, "Analyzer Error! Переменная не может содержать зарезервированное слово \"" + word + "\". " + variable);
-            }
-
             std::vector<Token> expression; bool FirstIteration = true;
 
             expression.push_back(*begin);
@@ -203,12 +198,6 @@ private:
                 }
 
                 else if(Expect(next(begin), end, TokenType::Types::Variable)){
-
-                    for(const auto& word : reserved_words){
-                        if(auto variable = next(begin)->get()->value; variable.contains(word))
-                            return SendError(next(begin), end, "Analyzer Error! Переменная не может содержать зарезервированное слово " + word + ". " + variable);
-                    }
-
                     if(next(begin, 2) == end)
                         return SendError(next(begin, 2), end, "Analyzer Error! После переменной ожидается операция."
                                                               "либо ключевое слово \"Stop\".");

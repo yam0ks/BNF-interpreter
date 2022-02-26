@@ -21,7 +21,7 @@ std::tuple<int, int, QString> Analyzer::AnalyzeCode(QString&& code)
         return SendOk();
 
     if(!CheckForStart(begin, end))
-        return SendError(begin, end, "Analyzer error! Программа должна начинаться со слова Start");
+        return SendError(begin, end, "Analyzer error! Программа должна начинаться со слова Start.");
 
     if(auto [b_idx, e_idx, error] = AnalyzeLinks(++begin, end); error != "OK")
         return SendError(b_idx, e_idx, error);
@@ -30,7 +30,7 @@ std::tuple<int, int, QString> Analyzer::AnalyzeCode(QString&& code)
         return SendError(b_idx, e_idx, error);
 
     if(!CheckForStop(begin, end) || ++begin != end)
-        return SendError(begin, end, "Analyzer error! Программа должна заканчиваться словом Stop");
+        return SendError(begin, end, "Analyzer error! Программа должна заканчиваться словом Stop.");
 
     return SendOk();
 }

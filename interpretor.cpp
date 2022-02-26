@@ -24,10 +24,13 @@ std::tuple<int, int, QString> Interpretor::InterpretCode(QString&& code)
 
 QString Interpretor::OutputValues()
 {
-    QString result;
+    QString result = "Результаты вычислений: \n";
 
     for(auto i = var_results.begin(); i != var_results.end(); ++i){
-        result = result + i.key() + " = " + QString::number(i.value()) + ".\n";
+        result = result + i.key() + " = " + QString::number(i.value(), 'f', 10);
+        auto idx = result.lastIndexOf(QRegularExpression(R"([^0])"));
+        result.remove((result[idx] == '.') ? idx : idx + 1, result.length() - idx);
+        result += "\n";
     }
     return result;
 }
@@ -56,9 +59,8 @@ std::tuple<int, int, QString> Interpretor::EvaluateExpr(const std::vector<Token>
         }
         else if(token->type == TokenType::Types::Function){
             while(!operations.empty() && Opriority(operations.top()) > Opriority(token->value)){
-                if(!Evaluate(values, operations.top()))
-                    return {0, 0, "Interpretor Error! В процессе вычисления переменной " + variable
-                                                                                                + " возникло деление на 0."};
+                if(QString error = Evaluate(values, operations.top()); error != QString())
+                    return {0, 0, "Interpretor Error! В процессе вычисления переменной " + variable + error};
                 operations.pop();
             }
             operations.push(token->value);
@@ -69,9 +71,8 @@ std::tuple<int, int, QString> Interpretor::EvaluateExpr(const std::vector<Token>
             if(is_unary && operation == "-")
                 operation = "--";
             while(!operations.empty() && Opriority(operations.top()) >= Opriority(token->value)){
-                if(!Evaluate(values, operations.top()))
-                    return {0, 0, "Interpretor Error! В процессе вычисления переменной " + variable
-                                                                                                + " возникло деление на 0."};
+                if(QString error = Evaluate(values, operations.top()); error != QString())
+                    return {0, 0, "Interpretor Error! В процессе вычисления переменной " + variable + error};
                 operations.pop();
             }
             operations.push(operation);
@@ -80,9 +81,8 @@ std::tuple<int, int, QString> Interpretor::EvaluateExpr(const std::vector<Token>
     }
 
     while(!operations.empty()){
-        if(!Evaluate(values, operations.top()))
-            return {0, 0, "Interpretor Error! В процессе вычисления переменной " + variable
-                                                                                        + " возникло деление на 0."};
+        if(QString error = Evaluate(values, operations.top()); error != QString())
+            return {0, 0, "Interpretor Error! В процессе вычисления переменной " + variable + error};
         operations.pop();
     }
 
@@ -124,7 +124,7 @@ int Interpretor::Opriority(const QString &op)
     return 0;
 }
 
-bool Interpretor::Evaluate(std::stack<double> &values, const QString &op)
+QString Interpretor::Evaluate(std::stack<double> &values, const QString &op)
 {
     if(op == "!"){
         double value = values.top(); values.pop();
@@ -154,6 +154,7 @@ bool Interpretor::Evaluate(std::stack<double> &values, const QString &op)
 
         double r_value = FromOctal(values.top()); values.pop();
         double l_value = FromOctal(values.top()); values.pop();
+        constexpr long long MAX_SIZE = 77777767700000;
 
         switch(QChar c = op[0]; c.unicode()){
             case '+' :
@@ -163,11 +164,14 @@ bool Interpretor::Evaluate(std::stack<double> &values, const QString &op)
                  values.push(ToOctal(l_value - r_value));
             break;
             case '*' :
-                 values.push(ToOctal(l_value * r_value));
+                if(auto result = ToOctal(l_value * r_value); result > MAX_SIZE)
+                    return " произошло переполнение переменной.";
+                else
+                    values.push(result);
             break;
             case '/' :
                  if(r_value == 0)
-                     return false;
+                     return " возникло деление на ноль.";
                  values.push(ToOctal(l_value / r_value));
             break;
             case '&' :
@@ -180,7 +184,7 @@ bool Interpretor::Evaluate(std::stack<double> &values, const QString &op)
             break;
         }
     }
-    return true;
+    return QString();
 }
 
 double Interpretor::InverseValue(const double value)
@@ -368,7 +372,7 @@ double Interpretor::FromBinary(QString value)
     QString decimal = parts[1];
 
     int i_base = 1;
-    int integer_result = 0;
+    long long integer_result = 0;
 
     for(int i = integer.length() - 1; i > 0; --i){
         switch(integer[i].unicode()){
@@ -420,13 +424,16 @@ double Interpretor::ToOctal(const double value)
         integer /= 8;
     }
 
-    str_result += ".";
+    if(decimal != 0)
+    {
+        str_result += ".";
 
-    for(int i = 0; i < 5; ++i) {
-        decimal = decimal * 8;
-        int holder = (int)decimal;
-        str_result += QString::number(holder);
-        decimal -= holder;
+        while(str_result.right(2).toInt() <= 10) {
+            decimal = decimal * 8;
+            int holder = (int)decimal;
+            str_result += QString::number(holder);
+            decimal -= holder;
+        }
     }
 
     double result = str_result.toDouble();
@@ -438,7 +445,7 @@ double Interpretor::ToOctal(const double value)
 double Interpretor::FromOctal(const double value)
 {
     double result;
-    QString octal_value = QString::number(value);
+    QString octal_value = QString::number(value, 'f', 10);
     QChar value_sign;
 
     if(octal_value[0] == '-'){
@@ -462,7 +469,7 @@ double Interpretor::FromOctal(const double value)
 
     QString integer = parts[0];
     int i_base = 1;
-    int integer_result = 0;
+    long long integer_result = 0;
 
     for(int i = integer.length() - 1; i >= 0; --i){
         integer_result = integer_result + i_base * QString(integer[i]).toInt();

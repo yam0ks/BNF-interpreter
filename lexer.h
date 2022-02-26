@@ -117,6 +117,11 @@ public:
         int idx_begin = begin - code.begin();
         int idx_end = end - code.begin();
 
+        if(auto [b_offset, error] = CheckIfWrongFunction(begin, end); error != "OK")
+            return SendError(idx_begin + b_offset, idx_end, error);
+        if(QString error = CheckIfWrongVariable(begin, end); error != QString())
+            return SendError(idx_begin, idx_end, error);
+
         if(CheckIfNumber(begin, end)){
             if(*begin == '0' && std::next(begin) != end)
                 return SendError(idx_begin, idx_end, "Parser error! Целое число не может начинаться с нуля.");
@@ -124,10 +129,8 @@ public:
             if(!IsOctalDigit(begin ,end))
                 return SendError(idx_begin, idx_end, "Parser error! Возможны только числа восьмеричного формата");
 
-            bool ok = true; BuildString(begin, end).toLongLong(&ok);
-
-            if(!ok)
-                return SendError(idx_begin, idx_end, "Parser error! Превышен лимит размера числа");
+            if(QString error = CheckLimits(BuildString(begin, end)); error != QString())
+                return SendError(idx_begin, idx_end, error);
 
             tokens.push_back(std::make_shared<TokenType::Number>(idx_begin, idx_end, TokenType::Types::Number, BuildString(begin, end)));
             return SendOk();
@@ -140,10 +143,8 @@ public:
             if(!IsOctalDigit(begin ,end))
                 return SendError(idx_begin, idx_end, "Parser error! Возможны только числа восьмеричного формата");
 
-            bool ok = true; BuildString(begin, end).toDouble(&ok);
-
-            if(!ok)
-                return SendError(idx_begin, idx_end, "Parser error! Превышен лимит размера числа");
+            if(QString error = CheckLimits(BuildString(begin, end)); error != QString())
+                return SendError(idx_begin, idx_end, error);
 
             tokens.push_back(std::make_shared<TokenType::Real>(idx_begin, idx_end, TokenType::Types::Real, BuildString(begin, end)));
             return SendOk();
@@ -195,6 +196,13 @@ public:
         }
 
         if(CheckIfVariable(begin, end)){
+            QVector<QString> reserved_words = {"sin", "cos", "tg", "ctg", "Start", "Stop", "Первое", "Второе", "Third", "Fourth"};
+
+            for(const auto& word : reserved_words){
+                if(auto variable = BuildString(begin, end); variable.contains(word))
+                    return SendError(idx_begin, idx_end, "Parser Error! Переменная не может содержать зарезервированное слово \"" + word + "\". " + variable);
+            }
+
             tokens.push_back(std::make_shared<TokenType::Variable>(idx_begin, idx_end, TokenType::Types::Variable, BuildString(begin, end)));
             return SendOk();
         }
@@ -312,6 +320,54 @@ private:
     }
 
     template <typename Siterator>
+    std::tuple<int, QString> CheckIfWrongFunction(Siterator begin, Siterator end) const{
+
+        auto it = begin;
+
+        if(BuildString(begin, end).indexOf(QRegularExpression(R"(sin|cos|ctg)")) == 0)
+            it = std::next(it, 3);
+        else if(BuildString(begin, end).indexOf(QRegularExpression(R"(tg)")) == 0)
+            it = std::next(it, 2);
+        else return {0, "OK"};
+
+            if(it == end)
+                return {0, "OK"};
+
+            if(CheckIfReal(it, end)     ||
+               CheckIfVariable(it, end))
+                return {it - begin, "Parser Error! Аргумент функции должен подаваться отдельно от функции."};
+            if(CheckIfNumber(it, end))
+                return {it - begin, "Parser Error! Аргумент функции не может быть целым числом."};
+
+        return {0, "OK"};
+    }
+
+    template <typename Siterator>
+    QString CheckIfWrongVariable(Siterator begin, Siterator end) const{
+        auto it = begin;
+
+        if(QRegularExpression(R"(\d)").match(*begin).hasMatch())
+            it = std::find_if_not(begin, end, [](const QChar symbol){
+            return QRegularExpression(R"([\d\.])").match(symbol).hasMatch();
+        });
+        else if(QRegularExpression(R"(\w)").match(*begin).hasMatch())
+            it = std::find_if(begin, end, [](const QChar symbol){
+            return QRegularExpression(R"(\d)").match(symbol).hasMatch();
+        });
+        else return QString();
+
+        if(it == end)
+            return QString();
+
+        if((CheckIfReal(begin, it) && CheckIfVariable(it, end)) ||
+           (CheckIfVariable(begin, it) && CheckIfReal(it, end)))
+            return "Parser Error! Имя переменной не может содержать вещественное число.";
+        if(CheckIfNumber(begin, it) && CheckIfVariable(it, end))
+            return "Parser Error! Имя переменной не может начинаться с цифры.";
+        return QString();
+    }
+
+    template <typename Siterator>
     QString BuildString(Siterator begin, Siterator end) const{
         QString result;
 
@@ -339,6 +395,8 @@ private:
     std::tuple<int, int, QString> SendError(const int b_idx, const int e_idx, const QString& error){
         return {b_idx, e_idx, error};
     }
+
+    QString CheckLimits(const QString& value);
 
     std::vector<Token> tokens;
     QVector<QChar> chars = {';', ':', ',', '='};
