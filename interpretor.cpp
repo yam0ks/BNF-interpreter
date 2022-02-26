@@ -27,7 +27,11 @@ QString Interpretor::OutputValues()
     QString result = "Результаты вычислений: \n";
 
     for(auto i = var_results.begin(); i != var_results.end(); ++i){
+<<<<<<< HEAD
         result = result + i.key() + " = " + QString::number(i.value(), 'f', 10);
+=======
+        result = result + i.key() + " = " + QString::number(i.value(), 'f', 2);
+>>>>>>> 815b4d007a9dd98809ccaca48ecd4f0347ff23a5
         auto idx = result.lastIndexOf(QRegularExpression(R"([^0])"));
         result.remove((result[idx] == '.') ? idx : idx + 1, result.length() - idx);
         result += "\n";
@@ -60,7 +64,11 @@ std::tuple<int, int, QString> Interpretor::EvaluateExpr(const std::vector<Token>
         else if(token->type == TokenType::Types::Function){
             while(!operations.empty() && Opriority(operations.top()) > Opriority(token->value)){
                 if(QString error = Evaluate(values, operations.top()); error != QString())
+<<<<<<< HEAD
                     return {0, 0, "Interpretor Error! В процессе вычисления переменной " + variable + error};
+=======
+                    return {expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx, "Interpretor Error! В процессе вычисления переменной " + variable + error};
+>>>>>>> 815b4d007a9dd98809ccaca48ecd4f0347ff23a5
                 operations.pop();
             }
             operations.push(token->value);
@@ -72,7 +80,11 @@ std::tuple<int, int, QString> Interpretor::EvaluateExpr(const std::vector<Token>
                 operation = "--";
             while(!operations.empty() && Opriority(operations.top()) >= Opriority(token->value)){
                 if(QString error = Evaluate(values, operations.top()); error != QString())
+<<<<<<< HEAD
                     return {0, 0, "Interpretor Error! В процессе вычисления переменной " + variable + error};
+=======
+                    return {expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx, "Interpretor Error! В процессе вычисления переменной " + variable + error};
+>>>>>>> 815b4d007a9dd98809ccaca48ecd4f0347ff23a5
                 operations.pop();
             }
             operations.push(operation);
@@ -82,7 +94,11 @@ std::tuple<int, int, QString> Interpretor::EvaluateExpr(const std::vector<Token>
 
     while(!operations.empty()){
         if(QString error = Evaluate(values, operations.top()); error != QString())
+<<<<<<< HEAD
             return {0, 0, "Interpretor Error! В процессе вычисления переменной " + variable + error};
+=======
+            return {expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx, "Interpretor Error! В процессе вычисления переменной " + variable + error};
+>>>>>>> 815b4d007a9dd98809ccaca48ecd4f0347ff23a5
         operations.pop();
     }
 
@@ -411,24 +427,34 @@ double Interpretor::FromBinary(QString value)
 
 double Interpretor::ToOctal(const double value)
 {
+    if(value == 0)
+        return 0;
+
     QString str_result;
 
     long long integer = (long long)value;
     double decimal = value - integer;
 
     (value < 0) ? integer *= -1 : integer *= 1;
-    (value < 0) ? decimal *= -1 : decimal *= 1;
 
     while(integer != 0) {
         str_result = QString::number(integer % 8) + str_result;
         integer /= 8;
     }
 
+<<<<<<< HEAD
     if(decimal != 0)
     {
         str_result += ".";
 
         while(str_result.right(2).toInt() <= 10) {
+=======
+    if(decimal != 0){
+        str_result += ".";
+        (value < 0) ? decimal *= -1 : decimal *= 1;
+
+        while(str_result.right(2).toInt() < 10) {
+>>>>>>> 815b4d007a9dd98809ccaca48ecd4f0347ff23a5
             decimal = decimal * 8;
             int holder = (int)decimal;
             str_result += QString::number(holder);
@@ -444,6 +470,9 @@ double Interpretor::ToOctal(const double value)
 
 double Interpretor::FromOctal(const double value)
 {
+    if(value == 0)
+        return 0;
+
     double result;
     QString octal_value = QString::number(value, 'f', 10);
     QChar value_sign;

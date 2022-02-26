@@ -1,10 +1,5 @@
 #include "analyzer.h"
 
-Analyzer::Analyzer()
-{
-
-}
-
 std::tuple<int, int, QString> Analyzer::AnalyzeCode(QString&& code)
 {
     auto [begin_idx, end_idx, error] = lexer.Parse(std::move(code));

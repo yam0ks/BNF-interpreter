@@ -6,13 +6,13 @@
 
 class Analyzer
 {
+
+using Expressions = std::vector<std::vector<Token>>;
+
 public:
-    Analyzer();
+    Analyzer() = default;
 
     std::tuple<int, int, QString> AnalyzeCode(QString&& code);
-
-    using Expressions = std::vector<std::vector<Token>>;
-
     const Expressions& GetExpr();
 
 private:
@@ -117,7 +117,7 @@ private:
                                                           + TypeToStr(next(begin)) + ". "
                                                           + begin->get()->value + " " + next(begin)->get()->value);
             }
-            begin++;
+            ++begin;
         }
     }
 
