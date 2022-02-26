@@ -1,33 +1,28 @@
 #include "interpretor.h"
 
-Interpretor::Interpretor()
-{
-
-}
-
 std::tuple<int, int, QString> Interpretor::InterpretCode(QString&& code)
 {
     var_results.clear();
 
     auto [begin_idx, end_idx, error] = an.AnalyzeCode(std::move(code));
 
-    if(error != "OK")
-            return {begin_idx, end_idx, error};
+    if(error != QString())
+            return SendError(begin_idx, end_idx, error);
 
     for(const auto& expression : an.GetExpr()){
-        if(auto [begin_idx, end_idx, error] = EvaluateExpr(expression); error != "OK")
-            return {begin_idx, end_idx, error};
+        if(auto [begin_idx, end_idx, error] = EvaluateExpr(expression); error != QString())
+            return SendError(begin_idx, end_idx, error);
     }
 
-    return {-1, -1, "OK"};
+    return SendOk();
 }
 
-QString Interpretor::OutputValues()
+QString Interpretor::OutputValues() const
 {
     QString result = "Результаты вычислений: \n";
 
     for(auto i = var_results.begin(); i != var_results.end(); ++i){
-        result = result + i.key() + " = " + QString::number(i.value(), 'f', 2);
+        result = result + i.key() + " = " + QString::number(i.value(), 'f', ComputeSignificant(i.value()));
         auto idx = result.lastIndexOf(QRegularExpression(R"([^0])"));
         result.remove((result[idx] == '.') ? idx : idx + 1, result.length() - idx);
         result += "\n";
@@ -53,14 +48,16 @@ std::tuple<int, int, QString> Interpretor::EvaluateExpr(const std::vector<Token>
         }
         else if(token->type == TokenType::Types::Variable){
             if(!var_results.contains(token->value))
-                return {token->begin_idx, token->end_idx, "Interpretor Error! Использование неинициализированной переменной. " + token->value};
+                return SendError(token->begin_idx, token->end_idx, "Interpretor Error! Использование неинициализированной переменной. "
+                                                                                                                            + token->value);
             values.push(var_results[token->value]);
             is_unary = var_name = false;
         }
         else if(token->type == TokenType::Types::Function){
             while(!operations.empty() && Opriority(operations.top()) > Opriority(token->value)){
                 if(QString error = Evaluate(values, operations.top()); error != QString())
-                    return {expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx, "Interpretor Error! В процессе вычисления переменной " + variable + error};
+                    return SendError(expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx,
+                                                                    "Interpretor Error! В процессе вычисления переменной " + variable + error);
                 operations.pop();
             }
             operations.push(token->value);
@@ -72,7 +69,8 @@ std::tuple<int, int, QString> Interpretor::EvaluateExpr(const std::vector<Token>
                 operation = "--";
             while(!operations.empty() && Opriority(operations.top()) >= Opriority(token->value)){
                 if(QString error = Evaluate(values, operations.top()); error != QString())
-                    return {expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx, "Interpretor Error! В процессе вычисления переменной " + variable + error};
+                    return SendError(expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx,
+                                                "Interpretor Error! В процессе вычисления переменной " + variable + error);
                 operations.pop();
             }
             operations.push(operation);
@@ -82,15 +80,16 @@ std::tuple<int, int, QString> Interpretor::EvaluateExpr(const std::vector<Token>
 
     while(!operations.empty()){
         if(QString error = Evaluate(values, operations.top()); error != QString())
-            return {expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx, "Interpretor Error! В процессе вычисления переменной " + variable + error};
+            return SendError(expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx,
+                                                        "Interpretor Error! В процессе вычисления переменной " + variable + error);
         operations.pop();
     }
 
     var_results[variable] = values.top();
-    return {-1, -1, "OK"};
+    return SendOk();
 }
 
-int Interpretor::Opriority(const QString &op)
+int Interpretor::Opriority(const QString &op) const
 {
     if(op == "--")
         return 3;
@@ -154,7 +153,7 @@ QString Interpretor::Evaluate(std::stack<double> &values, const QString &op)
 
         double r_value = FromOctal(values.top()); values.pop();
         double l_value = FromOctal(values.top()); values.pop();
-        constexpr long long MAX_SIZE = 77777767700000;
+        const long long MAX_SIZE = 77777767700000;
 
         switch(QChar c = op[0]; c.unicode()){
             case '+' :
@@ -206,11 +205,8 @@ double Interpretor::ConjuctValues(const double l_value, const double r_value)
     QString binary_l_value = ToBinary(l_value);
     QString binary_r_value = ToBinary(r_value);
 
-    QChar l_value_sign = binary_l_value[0];
-    QChar r_value_sign = binary_r_value[0];
-
-    binary_l_value.remove(0, 1);
-    binary_r_value.remove(0, 1);
+    QChar l_value_sign = binary_l_value[0]; binary_l_value.remove(0, 1);
+    QChar r_value_sign = binary_r_value[0]; binary_r_value.remove(0, 1);
 
     QStringList l_parts = binary_l_value.split(".");
     QStringList r_parts = binary_r_value.split(".");
@@ -271,11 +267,8 @@ double Interpretor::DisjunctValues(const double l_value, const double r_value)
     QString binary_l_value = ToBinary(l_value);
     QString binary_r_value = ToBinary(r_value);
 
-    QChar l_value_sign = binary_l_value[0];
-    QChar r_value_sign = binary_r_value[0];
-
-    binary_l_value.remove(0, 1);
-    binary_r_value.remove(0, 1);
+    QChar l_value_sign = binary_l_value[0]; binary_l_value.remove(0, 1);
+    QChar r_value_sign = binary_r_value[0]; binary_r_value.remove(0, 1);
 
     QStringList l_parts = binary_l_value.split(".");
     QStringList r_parts = binary_r_value.split(".");
@@ -330,6 +323,20 @@ double Interpretor::DisjunctValues(const double l_value, const double r_value)
     return FromBinary(integer_result + "." + decimal_result);
 }
 
+int Interpretor::ComputeSignificant(const double value) const
+{
+    int result = 0;
+
+    double decimal = qAbs(value - (int)value);
+
+    while(decimal * 10 < 100){
+        decimal *= 10;
+        ++result;
+    }
+
+    return result;
+}
+
 QString Interpretor::ToBinary(const double value)
 {
     QString result;
@@ -340,12 +347,17 @@ QString Interpretor::ToBinary(const double value)
     if(integer == 0)
         result += '0';
 
-    while(integer!=0) {result=(integer%2==0 ?"0":"1")+result; integer/=2;}
+    while(integer != 0) {
+        result = ( (integer % 2 == 0) ? "0" : "1") + result;
+        integer /= 2;
+    }
 
     result = (value >= 0) ? "0" + result: "1" + result; result += ".";
     (value < 0) ? decimal *= -1 : decimal *= 1;
 
-    for(int i = 0; i < 20; ++i) {
+    const int precision = 20;
+
+    for(int i = 0; i < precision; ++i) {
         decimal = decimal * 2;
         int holder = (int)decimal;
         result += QString::number(holder);
@@ -429,10 +441,11 @@ double Interpretor::ToOctal(const double value)
     if(decimal != 0){
 
         str_result += ".";
-
         (value < 0) ? decimal *= -1 : decimal *= 1;
 
-        while(str_result.right(2).toInt() < 10) {
+        int precision = 100;
+
+        while(str_result.right(3).toInt() < precision) {
             decimal = decimal * 8;
             int holder = (int)decimal;
             str_result += QString::number(holder);
@@ -452,7 +465,7 @@ double Interpretor::FromOctal(const double value)
         return 0;
 
     double result;
-    QString octal_value = QString::number(value, 'f', 10);
+    QString octal_value = QString::number(value, 'f', 15);
     QChar value_sign;
 
     if(octal_value[0] == '-'){

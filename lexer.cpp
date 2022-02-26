@@ -1,9 +1,5 @@
 #include "lexer.h"
 
-Lexer::Lexer()
-{
-}
-
 std::tuple<int, int, QString> Lexer::Parse(QString&& code)
 {
     if(code.isEmpty())
@@ -20,8 +16,8 @@ std::tuple<int, int, QString> Lexer::Parse(QString&& code)
 
         auto [s_pos, e_pos, error] = ConvertToken(begin, end, code);
 
-        if(error != "OK")
-                return SendError(s_pos, e_pos, error);
+        if(error != QString())
+            return SendError(s_pos, e_pos, error);
     }
 
     return SendOk();

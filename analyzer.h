@@ -11,9 +11,8 @@ using Expressions = std::vector<std::vector<Token>>;
 
 public:
     Analyzer() = default;
-
     std::tuple<int, int, QString> AnalyzeCode(QString&& code);
-    const Expressions& GetExpr();
+    const Expressions& GetExpr() const;
 
 private:
     template <typename Viterator>
@@ -331,33 +330,14 @@ private:
     }
 
     std::tuple<int, int, QString> SendOk(){
-        return {0, 0, "OK"};
+        return {0, 0, QString()};
     }
 
     template <typename Viterator>
-    std::tuple<int, int, QString> SendError(Viterator begin, Viterator end, const QString& error, HighLiteOption option = HighLiteOption::Right){
+    std::tuple<int, int, QString> SendError(Viterator begin, Viterator end, const QString& error){
         if(begin == end)
             return {(std::prev(begin))->get()->begin_idx, (std::prev(begin))->get()->end_idx, error};
-        if(next(begin) == end)
-            return {(begin)->get()->begin_idx, begin->get()->end_idx, error};
 
-        switch(option){
-            case HighLiteOption::Between :
-                return {std::prev(begin)->get()->end_idx, begin->get()->begin_idx, error};
-            break;
-            case HighLiteOption::Left :
-                return {std::prev(begin)->get()->begin_idx, std::prev(begin)->get()->end_idx, error};
-            break;
-            case HighLiteOption::Right :
-                return {begin->get()->begin_idx, begin->get()->end_idx, error};
-            break;
-            case HighLiteOption::Both :
-                return {std::prev(begin)->get()->begin_idx, begin->get()->end_idx, error};
-            break;
-            case HighLiteOption::None :
-                return {0, 0, error};
-            break;
-        }
         return {begin->get()->begin_idx, begin->get()->end_idx, error};
     }
 
@@ -365,89 +345,89 @@ private:
         return {b_idx, e_idx, error};
     }
 
-template <typename Viterator>
-QString TypeToStr(Viterator token_it){
-    switch(token_it->get()->type){
-        case TokenType::Types::Char :
-            switch(QChar symbol = token_it->get()->value[0]; symbol.unicode()){
-                case ';' :
-                    return "точка с запятой";
-                break;
-                case ':' :
-                    return "двоеточие";
-                break;
-                case ',' :
-                    return "запятая";
-                break;
-                case '=' :
-                    return "знак равенства";
-                break;
-                default :
-                    return QString();
-                break;
-            }
-        break;
-        case TokenType::Types::Real :
-            return "вещественное число";
-        break;
-        case TokenType::Types::Stop :
-            return "ключевое слово \"Stop\"";
-        break;
-        case TokenType::Types::First :
-            return "ключевое слово \"Первое\"";
-        break;
-        case TokenType::Types::Start :
-            return "ключевое слово \"Start\"";
-        break;
-        case TokenType::Types::Third :
-            return "ключевое слово \"Third\"";
-        break;
-        case TokenType::Types::Fourth :
-            return "ключевое слово \"Fourth\"";
-        break;
-        case TokenType::Types::Number :
-            return "целое число";
-        break;
-        case TokenType::Types::Second :
-            return "ключевое слово \"Второе\"";
-        break;
-        case TokenType::Types::Function :
-            return "функция";
-        break;
-        case TokenType::Types::Variable :
-            return "переменная";
-        break;
-        case TokenType::Types::Operation :
-            switch(QChar symbol = token_it->get()->value[0]; symbol.unicode()){
-                case '+' :
-                    return "операция сложения";
-                break;
-                case '-' :
-                    return "операция вычитания";
-                break;
-                case '/' :
-                    return "операция деления";
-                break;
-                case '*' :
-                    return "операция умножения";
-                break;
-                case '!' :
-                    return "операция инвертирования";
-                break;
-                case '&' :
-                    return "операция поразрядной конъюнкции";
-                break;
-                case '|' :
-                    return "операция поразрядной дизъюнкции";
-                break;
-                default  :
-                    return QString();
-                break;
-            }
-        break;
+    template <typename Viterator>
+    QString TypeToStr(Viterator token_it){
+        switch(token_it->get()->type){
+            case TokenType::Types::Char :
+                switch(QChar symbol = token_it->get()->value[0]; symbol.unicode()){
+                    case ';' :
+                        return "точка с запятой";
+                    break;
+                    case ':' :
+                        return "двоеточие";
+                    break;
+                    case ',' :
+                        return "запятая";
+                    break;
+                    case '=' :
+                        return "знак равенства";
+                    break;
+                    default :
+                        return QString();
+                    break;
+                }
+            break;
+            case TokenType::Types::Real :
+                return "вещественное число";
+            break;
+            case TokenType::Types::Stop :
+                return "ключевое слово \"Stop\"";
+            break;
+            case TokenType::Types::First :
+                return "ключевое слово \"Первое\"";
+            break;
+            case TokenType::Types::Start :
+                return "ключевое слово \"Start\"";
+            break;
+            case TokenType::Types::Third :
+                return "ключевое слово \"Third\"";
+            break;
+            case TokenType::Types::Fourth :
+                return "ключевое слово \"Fourth\"";
+            break;
+            case TokenType::Types::Number :
+                return "целое число";
+            break;
+            case TokenType::Types::Second :
+                return "ключевое слово \"Второе\"";
+            break;
+            case TokenType::Types::Function :
+                return "функция";
+            break;
+            case TokenType::Types::Variable :
+                return "переменная";
+            break;
+            case TokenType::Types::Operation :
+                switch(QChar symbol = token_it->get()->value[0]; symbol.unicode()){
+                    case '+' :
+                        return "операция сложения";
+                    break;
+                    case '-' :
+                        return "операция вычитания";
+                    break;
+                    case '/' :
+                        return "операция деления";
+                    break;
+                    case '*' :
+                        return "операция умножения";
+                    break;
+                    case '!' :
+                        return "операция инвертирования";
+                    break;
+                    case '&' :
+                        return "операция поразрядной конъюнкции";
+                    break;
+                    case '|' :
+                        return "операция поразрядной дизъюнкции";
+                    break;
+                    default  :
+                        return QString();
+                    break;
+                }
+            break;
+        }
+        return QString();
     }
-    return QString();
-}
 
     Lexer lexer;
     Expressions expressions;

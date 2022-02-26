@@ -40,9 +40,10 @@ TranslatorWindow::~TranslatorWindow()
 void TranslatorWindow::on_Run_Button_clicked()
 {
     ui->Output_TextBrowser->clear();
+
     auto [first, second, error] = in.InterpretCode(ui->Programm_TextEdit->toPlainText());
 
-    if(error != "OK"){
+    if(error != QString()){
         emit ui->Programm_TextEdit->errorHappens(first, second);
         ui->Output_TextBrowser->setTextColor(Qt::red);
         ui->Output_TextBrowser->setText(error);

@@ -6,7 +6,7 @@ std::tuple<int, int, QString> Analyzer::AnalyzeCode(QString&& code)
 
     expressions.clear();
 
-    if(error != "OK")
+    if(error != QString())
             return {begin_idx, end_idx, error};
 
     auto begin = lexer.GetTokens().begin();
@@ -18,10 +18,10 @@ std::tuple<int, int, QString> Analyzer::AnalyzeCode(QString&& code)
     if(!CheckForStart(begin, end))
         return SendError(begin, end, "Analyzer error! Программа должна начинаться со слова Start.");
 
-    if(auto [b_idx, e_idx, error] = AnalyzeLinks(++begin, end); error != "OK")
+    if(auto [b_idx, e_idx, error] = AnalyzeLinks(++begin, end); error != QString())
         return SendError(b_idx, e_idx, error);
 
-    if(auto [b_idx, e_idx, error] = AnalyzeOperators(begin, end); error != "OK")
+    if(auto [b_idx, e_idx, error] = AnalyzeOperators(begin, end); error != QString())
         return SendError(b_idx, e_idx, error);
 
     if(!CheckForStop(begin, end) || ++begin != end)
@@ -30,7 +30,7 @@ std::tuple<int, int, QString> Analyzer::AnalyzeCode(QString&& code)
     return SendOk();
 }
 
-const Analyzer::Expressions &Analyzer::GetExpr()
+const Analyzer::Expressions &Analyzer::GetExpr() const
 {
     return expressions;
 }
