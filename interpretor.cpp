@@ -329,6 +329,9 @@ int Interpretor::ComputeSignificant(const double value) const
 
     double decimal = qAbs(value - (int)value);
 
+    if(decimal == 0)
+        return 1;
+
     while(decimal * 10 < 100){
         decimal *= 10;
         ++result;

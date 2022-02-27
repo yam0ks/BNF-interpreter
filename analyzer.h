@@ -198,7 +198,7 @@ private:
 
                 else if(Expect(next(begin), end, TokenType::Types::Variable)){
                     if(next(begin, 2) == end)
-                        return SendError(next(begin, 2), end, "Analyzer Error! После переменной ожидается операция."
+                        return SendError(next(begin, 2), end, "Analyzer Error! После переменной ожидается операция,"
                                                               "либо ключевое слово \"Stop\".");
 
                     else if((!Expect(next(begin, 2), end, TokenType::Types::Operation) &&
@@ -288,7 +288,7 @@ private:
                     if(next(begin, 2) == end)
                         return SendError(next(begin), end, "Analyzer error! После точки с запятой ожидается очередной оператор.");
                     else if(!Expect(next(begin, 2), end, TokenType::Types::Number) && !Expect(next(begin, 2), end, TokenType::Types::Variable))
-                        return SendError(next(begin), end, "Analyzer error! После точки с запятой в конце оператора не может идти " + TypeToStr(next(begin, 2)) + ". "
+                        return SendError(next(begin, 2), end, "Analyzer error! После точки с запятой в конце оператора не может идти " + TypeToStr(next(begin, 2)) + ". "
                                                                                                     + next(begin, 2)->get()->value);
                     ++begin;
                     break;
