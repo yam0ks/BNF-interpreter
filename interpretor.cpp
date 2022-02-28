@@ -327,7 +327,7 @@ int Interpretor::ComputeSignificant(const double value) const
 {
     int result = 0;
 
-    double decimal = qAbs(value - (int)value);
+    double decimal = qAbs(value - (long long)value);
 
     if(decimal == 0)
         return 1;

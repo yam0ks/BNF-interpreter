@@ -45,10 +45,13 @@ QString Lexer::CheckLimits(const QString &value)
 {
     QStringList parts = value.split(".");
 
+    if(parts.size() == 1 && parts[0].length() > 8)
+        return "Parser Error! Превышен допустимый размер целого числа. ";
+
     if(parts[0].length() > 8)
-        return "Parser Error! Целая часть превышает лимит размера.";
+        return "Parser Error! Превышен допустимый размер целой части вещественного числа. ";
     if(parts.size() == 2 && parts[1].length() > 6)
-        return "Parser Error! Дробная часть превышает лимит размера.";
+        return "Parser Error! Превышен допустимый размер целой дробной вещественного числа. ";
     return QString();
 }
 

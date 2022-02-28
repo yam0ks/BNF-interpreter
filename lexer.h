@@ -105,6 +105,29 @@ public:
     Lexer() = default;
 
     template <typename Siterator>
+    bool CheckIfVariable(Siterator begin, Siterator end) const{
+        QString str = BuildString(begin, end);
+
+        if(QChar(str[0]) < QChar(65)   || QChar(str[0]) > QChar(1105)  ||
+          (QChar(str[0]) > QChar(90)   && QChar(str[0]) < QChar(97))   ||
+          (QChar(str[0]) > QChar(122)  && QChar(str[0]) < QChar(1025)) ||
+          (QChar(str[0]) > QChar(1025) && QChar(str[0]) < QChar(1040)) ||
+          (QChar(str[0]) > QChar(1103) && QChar(str[0]) < QChar(1105))) return false;
+
+        for(int i = 1; i < str.size(); ++i){
+            if(QChar(str[i]) < QChar(48)   || QChar(str[i]) > QChar(1105)  ||
+              (QChar(str[i]) > QChar(55)   && QChar(str[i]) < QChar(65))   ||
+              (QChar(str[i]) > QChar(90)   && QChar(str[i]) < QChar(97))   ||
+              (QChar(str[i]) > QChar(122)  && QChar(str[i]) < QChar(1025)) ||
+              (QChar(str[i]) > QChar(1025) && QChar(str[i]) < QChar(1040)) ||
+              (QChar(str[i]) > QChar(1103) && QChar(str[i]) < QChar(1105))) return false;
+        }
+
+        return true;
+    }
+
+
+    template <typename Siterator>
     std::tuple<int, int, QString> ConvertToken(Siterator begin, Siterator end, const QString& code){
         const int idx_begin = begin - code.begin();
         const int idx_end = end - code.begin();
@@ -289,27 +312,6 @@ private:
         return functions.contains(BuildString(begin, end));
     }
 
-    template <typename Siterator>
-    bool CheckIfVariable(Siterator begin, Siterator end) const{
-        QString str = BuildString(begin, end);
-
-        if(QChar(str[0]) < QChar(65)   || QChar(str[0]) > QChar(1105)  ||
-          (QChar(str[0]) > QChar(90)   && QChar(str[0]) < QChar(97))   ||
-          (QChar(str[0]) > QChar(122)  && QChar(str[0]) < QChar(1025)) ||
-          (QChar(str[0]) > QChar(1025) && QChar(str[0]) < QChar(1040)) ||
-          (QChar(str[0]) > QChar(1103) && QChar(str[0]) < QChar(1105))) return false;
-
-        for(int i = 1; i < str.size(); ++i){
-            if(QChar(str[i]) < QChar(48)   || QChar(str[i]) > QChar(1105)  ||
-              (QChar(str[i]) > QChar(55)   && QChar(str[i]) < QChar(65))   ||
-              (QChar(str[i]) > QChar(90)   && QChar(str[i]) < QChar(97))   ||
-              (QChar(str[i]) > QChar(122)  && QChar(str[i]) < QChar(1025)) ||
-              (QChar(str[i]) > QChar(1025) && QChar(str[i]) < QChar(1040)) ||
-              (QChar(str[i]) > QChar(1103) && QChar(str[i]) < QChar(1105))) return false;
-        }
-
-        return true;
-    }
 
     template <typename Siterator>
     std::tuple<int, QString> CheckIfWrongFunction(Siterator begin, Siterator end) const{
