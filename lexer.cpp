@@ -28,6 +28,14 @@ const std::vector<Token> &Lexer::GetTokens() const
     return tokens;
 }
 
+std::tuple<int, int, QString> Lexer::SendOk(){
+    return {0, 0, QString()};
+}
+
+std::tuple<int, int, QString> Lexer::SendError(const int b_idx, const int e_idx, const QString &error){
+    return {b_idx, e_idx, error};
+}
+
 void Lexer::PrepareCode(QString& code)
 {
     code.replace('\n', ' ');
