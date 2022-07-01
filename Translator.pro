@@ -20,6 +20,7 @@ SOURCES += \
     codeeditor.cpp \
     interpretor.cpp \
     lexer.cpp \
+    logger.cpp \
     main.cpp \
     translatorwindow.cpp
 
@@ -28,6 +29,7 @@ HEADERS += \
     codeeditor.h \
     interpretor.h \
     lexer.h \
+    logger.h \
     translatorwindow.h
 
 FORMS += \

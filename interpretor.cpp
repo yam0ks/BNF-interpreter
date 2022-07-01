@@ -7,14 +7,14 @@ std::tuple<int, int, QString> Interpretor::InterpretCode(QString&& code)
     auto [begin_idx, end_idx, error] = an.AnalyzeCode(std::move(code));
 
     if(error != QString())
-            return SendError(begin_idx, end_idx, error);
+            return Logger::SendError(begin_idx, end_idx, error);
 
     for(const auto& expression : an.GetExpr()){
         if(auto [begin_idx, end_idx, error] = EvaluateExpr(expression); error != QString())
-            return SendError(begin_idx, end_idx, error);
+            return Logger::SendError(begin_idx, end_idx, error);
     }
 
-    return SendOk();
+    return Logger::SendOk();
 }
 
 QString Interpretor::OutputValues() const
@@ -48,7 +48,7 @@ std::tuple<int, int, QString> Interpretor::EvaluateExpr(const std::vector<Token>
         }
         else if(token->type == TokenType::Types::Variable){
             if(!var_results.contains(token->value))
-                return SendError(token->begin_idx, token->end_idx, "Interpretor Error! Использование неинициализированной переменной. "
+                return Logger::SendError(token->begin_idx, token->end_idx, "Interpretor Error! Использование неинициализированной переменной. "
                                                                                                                             + token->value);
             values.push(var_results[token->value]);
             is_unary = var_name = false;
@@ -56,7 +56,7 @@ std::tuple<int, int, QString> Interpretor::EvaluateExpr(const std::vector<Token>
         else if(token->type == TokenType::Types::Function){
             while(!operations.empty() && Opriority(operations.top()) > Opriority(token->value)){
                 if(QString error = Evaluate(values, operations.top()); error != QString())
-                    return SendError(expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx,
+                    return Logger::SendError(expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx,
                                                                     "Interpretor Error! В процессе вычисления переменной " + variable + error);
                 operations.pop();
             }
@@ -69,7 +69,7 @@ std::tuple<int, int, QString> Interpretor::EvaluateExpr(const std::vector<Token>
                 operation = "--";
             while(!operations.empty() && Opriority(operations.top()) >= Opriority(token->value)){
                 if(QString error = Evaluate(values, operations.top()); error != QString())
-                    return SendError(expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx,
+                    return Logger::SendError(expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx,
                                                 "Interpretor Error! В процессе вычисления переменной " + variable + error);
                 operations.pop();
             }
@@ -80,13 +80,13 @@ std::tuple<int, int, QString> Interpretor::EvaluateExpr(const std::vector<Token>
 
     while(!operations.empty()){
         if(QString error = Evaluate(values, operations.top()); error != QString())
-            return SendError(expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx,
+            return Logger::SendError(expression.begin()->get()->begin_idx, expression.begin()->get()->end_idx,
                                                         "Interpretor Error! В процессе вычисления переменной " + variable + error);
         operations.pop();
     }
 
     var_results[variable] = values.top();
-    return SendOk();
+    return Logger::SendOk();
 }
 
 int Interpretor::Opriority(const QString &op) const

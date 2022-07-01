@@ -32,13 +32,6 @@ private:
 
     int ComputeSignificant(const double value) const;
 
-    std::tuple<int, int, QString> SendOk(){
-        return {0, 0, QString()};
-    }
-    std::tuple<int, int, QString> SendError(const int b_idx, const int e_idx, const QString& error){
-        return {b_idx, e_idx, error};
-    }
-
     Analyzer an;
     QMap<QString, double> var_results;
 };

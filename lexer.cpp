@@ -3,7 +3,7 @@
 std::tuple<int, int, QString> Lexer::Parse(QString&& code)
 {
     if(code.isEmpty())
-        return SendError(0, 0, "Parser Error! На вход подана пустая программа.");
+        return Logger::SendError(0, 0, "Parser Error! На вход подана пустая программа.");
 
     PrepareCode(code);
     ClearTokens();
@@ -17,23 +17,15 @@ std::tuple<int, int, QString> Lexer::Parse(QString&& code)
         auto [s_pos, e_pos, error] = ConvertToken(begin, end, code);
 
         if(error != QString())
-            return SendError(s_pos, e_pos, error);
+            return Logger::SendError(s_pos, e_pos, error);
     }
 
-    return SendOk();
+    return Logger::SendOk();
 }
 
 const std::vector<Token> &Lexer::GetTokens() const
 {
     return tokens;
-}
-
-std::tuple<int, int, QString> Lexer::SendOk(){
-    return {0, 0, QString()};
-}
-
-std::tuple<int, int, QString> Lexer::SendError(const int b_idx, const int e_idx, const QString &error){
-    return {b_idx, e_idx, error};
 }
 
 void Lexer::PrepareCode(QString& code)

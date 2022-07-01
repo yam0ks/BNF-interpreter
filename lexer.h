@@ -2,6 +2,8 @@
 #define LEXER_H
 #pragma once
 
+#include "logger.h"
+
 #include <QString>
 #include <QRegularExpression>
 #include <vector>
@@ -167,9 +169,6 @@ private:
     template <typename Siterator>
     bool IsOctalDigit(Siterator begin, Siterator end) const;
 
-    std::tuple<int, int, QString> SendOk();
-    std::tuple<int, int, QString> SendError(const int b_idx, const int e_idx, const QString& error);
-
     bool IsOctalDigit(const QChar symbol) const;
     void PrepareCode(QString& code);
     void ClearTokens();
@@ -209,82 +208,82 @@ std::tuple<int, int, QString> Lexer::ConvertToken(Siterator begin, Siterator end
     const int idx_end = end - code.begin();
 
     if(auto [b_offset, error] = CheckIfWrongFunction(begin, end); error != QString())
-        return SendError(idx_begin + b_offset, idx_end, error + BuildString(begin, end));
+        return Logger::SendError(idx_begin + b_offset, idx_end, error + BuildString(begin, end));
     if(QString error = CheckIfWrongVariable(begin, end); error != QString())
-        return SendError(idx_begin, idx_end, error + BuildString(begin, end));
+        return Logger::SendError(idx_begin, idx_end, error + BuildString(begin, end));
 
     if(CheckIfNumber(begin, end)){
         if(*begin == '0' && std::next(begin) != end)
-            return SendError(idx_begin, idx_end, "Parser error! Целое число не может начинаться с нуля. " + BuildString(begin, end));
+            return Logger::SendError(idx_begin, idx_end, "Parser error! Целое число не может начинаться с нуля. " + BuildString(begin, end));
 
         if(!IsOctalDigit(begin, end))
-            return SendError(idx_begin, idx_end, "Parser error! Возможны только числа восьмеричного формата. " + BuildString(begin, end));
+            return Logger::SendError(idx_begin, idx_end, "Parser error! Возможны только числа восьмеричного формата. " + BuildString(begin, end));
 
         if(QString error = CheckLimits(BuildString(begin, end)); error != QString())
-            return SendError(idx_begin, idx_end, error + BuildString(begin, end));
+            return Logger::SendError(idx_begin, idx_end, error + BuildString(begin, end));
 
         tokens.push_back(std::make_shared<TokenType::Number>(idx_begin, idx_end, TokenType::Types::Number, BuildString(begin, end)));
-        return SendOk();
+        return Logger::SendOk();
     }
 
     if(CheckIfReal(begin, end)){
         if(*begin == '0' && *std::next(begin) != '.')
-            return SendError(idx_begin, idx_end, "Parser error! Неверное количество разрядов в вещественном числе с отсутствующей целой частью. "
+            return Logger::SendError(idx_begin, idx_end, "Parser error! Неверное количество разрядов в вещественном числе с отсутствующей целой частью. "
                                                                                                             + BuildString(begin, end));
 
         if(!IsOctalDigit(begin, end))
-            return SendError(idx_begin, idx_end, "Parser error! Возможны только числа восьмеричного формата. " + BuildString(begin, end));
+            return Logger::SendError(idx_begin, idx_end, "Parser error! Возможны только числа восьмеричного формата. " + BuildString(begin, end));
 
         if(QString error = CheckLimits(BuildString(begin, end)); error != QString())
-            return SendError(idx_begin, idx_end, error + BuildString(begin, end));
+            return Logger::SendError(idx_begin, idx_end, error + BuildString(begin, end));
 
         tokens.push_back(std::make_shared<TokenType::Real>(idx_begin, idx_end, TokenType::Types::Real, BuildString(begin, end)));
-        return SendOk();
+        return Logger::SendOk();
     }
 
     if(CheckIfOperation(begin)){
         tokens.push_back(std::make_shared<TokenType::Operation>(idx_begin, idx_end, TokenType::Types::Operation, *begin));
-        return SendOk();
+        return Logger::SendOk();
     }
 
     if(CheckIfChar(begin)){
         tokens.push_back(std::make_shared<TokenType::Char>(idx_begin, idx_end, TokenType::Types::Char, *begin));
-        return SendOk();
+        return Logger::SendOk();
     }
 
     if(CheckIfStart(begin, end)){
         tokens.push_back(std::make_shared<TokenType::Start>(idx_begin, idx_end, TokenType::Types::Start));
-        return SendOk();
+        return Logger::SendOk();
     }
 
     if(CheckIfStop(begin, end)){
         tokens.push_back(std::make_shared<TokenType::Stop>(idx_begin, idx_end, TokenType::Types::Stop));
-        return SendOk();
+        return Logger::SendOk();
     }
 
     if(CheckIfFirst(begin, end)){
         tokens.push_back(std::make_shared<TokenType::First>(idx_begin, idx_end, TokenType::Types::First));
-        return SendOk();
+        return Logger::SendOk();
     }
 
     if(CheckIfSecond(begin, end)){
         tokens.push_back(std::make_shared<TokenType::Second>(idx_begin, idx_end, TokenType::Types::Second));
-        return SendOk();
+        return Logger::SendOk();
     }
 
     if(CheckIfThird(begin, end)){
         tokens.push_back(std::make_shared<TokenType::Third>(idx_begin, idx_end, TokenType::Types::Third));
-        return SendOk();
+        return Logger::SendOk();
     }
 
     if(CheckIfFourth(begin, end)){
         tokens.push_back(std::make_shared<TokenType::Fourth>(idx_begin, idx_end, TokenType::Types::Fourth));
-        return SendOk();
+        return Logger::SendOk();
     }
 
     if(CheckIfFunction(begin, end)){
         tokens.push_back(std::make_shared<TokenType::Function>(idx_begin, idx_end, TokenType::Types::Function, BuildString(begin, end)));
-        return SendOk();
+        return Logger::SendOk();
     }
 
     if(CheckIfVariable(begin, end)){
@@ -292,14 +291,14 @@ std::tuple<int, int, QString> Lexer::ConvertToken(Siterator begin, Siterator end
 
         for(const auto& word : reserved_words){
             if(auto variable = BuildString(begin, end); variable.contains(word))
-                return SendError(idx_begin, idx_end, "Parser Error! Переменная не может содержать зарезервированное слово \"" + word + "\". " + variable);
+                return Logger::SendError(idx_begin, idx_end, "Parser Error! Переменная не может содержать зарезервированное слово \"" + word + "\". " + variable);
         }
 
         tokens.push_back(std::make_shared<TokenType::Variable>(idx_begin, idx_end, TokenType::Types::Variable, BuildString(begin, end)));
-        return SendOk();
+        return Logger::SendOk();
     }
 
-    return SendError(idx_begin, idx_end, "Parser error! Неизвестный терминал: " + BuildString(begin, end));
+    return Logger::SendError(idx_begin, idx_end, "Parser error! Неизвестный терминал: " + BuildString(begin, end));
 }
 
 template <typename Siterator>

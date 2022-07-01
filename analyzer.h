@@ -36,22 +36,6 @@ private:
     template <typename Viterator>
     bool Expect(Viterator token_it, Viterator end, const QString& pattern);
 
-    std::tuple<int, int, QString> SendOk(){
-        return {0, 0, QString()};
-    }
-
-    template <typename Viterator>
-    std::tuple<int, int, QString> SendError(Viterator begin, Viterator end, const QString& error){
-        if(begin == end)
-            return {(std::prev(begin))->get()->begin_idx, (std::prev(begin))->get()->end_idx, error};
-
-        return {begin->get()->begin_idx, begin->get()->end_idx, error};
-    }
-
-    std::tuple<int, int, QString> SendError(const int b_idx, const int e_idx, const QString& error){
-        return {b_idx, e_idx, error};
-    }
-
     template <typename Viterator>
     QString TypeToStr(Viterator token_it);
 
@@ -81,9 +65,9 @@ std::tuple<int, int, QString> Analyzer::AnalyzeLinks(Viterator& begin, Viterator
         if(Expect(begin, end, TokenType::Types::First)){
             HasLink = true;
             if(++begin == end)
-                return SendError(begin, end, "Analyzer Error! После ключевого слова \"Первое\" должно идти вещественное число.");
+                return Logger::SendError(begin, end, "Analyzer Error! После ключевого слова \"Первое\" должно идти вещественное число.");
             else if(!Expect(begin, end, TokenType::Types::Real))
-                return SendError(begin, end, "Analyzer Error! После ключевого слова \"Первое\" не может идти " + TypeToStr(begin) + ". "
+                return Logger::SendError(begin, end, "Analyzer Error! После ключевого слова \"Первое\" не может идти " + TypeToStr(begin) + ". "
                                                                     + prev(begin)->get()->value + " " + begin->get()->value);
         }
 
@@ -92,9 +76,9 @@ std::tuple<int, int, QString> Analyzer::AnalyzeLinks(Viterator& begin, Viterator
             bool FirstIteration = true;
             while(true){
                 if(next(begin) == end && FirstIteration)
-                    return SendError(next(begin), end, "Analyzer Error! После ключевого слова \"Второе\" должно идти вещественное число.");
+                    return Logger::SendError(next(begin), end, "Analyzer Error! После ключевого слова \"Второе\" должно идти вещественное число.");
                 else if(!Expect(next(begin), end, TokenType::Types::Real) && FirstIteration)
-                    return SendError(next(begin), end, "Analyzer Error! После ключевого слова \"Второе\" не может идти " + TypeToStr(next(begin)) + ". "
+                    return Logger::SendError(next(begin), end, "Analyzer Error! После ключевого слова \"Второе\" не может идти " + TypeToStr(next(begin)) + ". "
                                                                     + begin->get()->value + " " + next(begin)->get()->value);
                 else if(!Expect(next(begin), end, TokenType::Types::Real) && !FirstIteration)
                     break;
@@ -106,9 +90,9 @@ std::tuple<int, int, QString> Analyzer::AnalyzeLinks(Viterator& begin, Viterator
         else if(Expect(begin, end, TokenType::Types::Third)){
             HasLink = true;
             if(++begin == end)
-                return SendError(begin, end, "Analyzer Error! После ключевого слова \"Third\" должно идти целое число.");
+                return Logger::SendError(begin, end, "Analyzer Error! После ключевого слова \"Third\" должно идти целое число.");
             if(!Expect(begin, end, TokenType::Types::Number))
-                return SendError(begin, end, "Analyzer Error! После ключевого слова \"Third\" не может идти " + TypeToStr(begin) + ". "
+                return Logger::SendError(begin, end, "Analyzer Error! После ключевого слова \"Third\" не может идти " + TypeToStr(begin) + ". "
                                                                     + prev(begin)->get()->value + " " + begin->get()->value);
         }
 
@@ -117,14 +101,14 @@ std::tuple<int, int, QString> Analyzer::AnalyzeLinks(Viterator& begin, Viterator
             bool FirstIteration = true;
             while(true){
                 if(next(begin) == end  && FirstIteration)
-                    return SendError(next(begin), end, "Analyzer Error! После ключевого слова \"Fourth\" должно идти целое число.");
+                    return Logger::SendError(next(begin), end, "Analyzer Error! После ключевого слова \"Fourth\" должно идти целое число.");
                 else if(!Expect(next(begin), end, TokenType::Types::Number) && FirstIteration)
-                    return SendError(next(begin), end, "Analyzer Error! После ключевого слова \"Fourth\" не может идти " + TypeToStr(next(begin)) + ". "
+                    return Logger::SendError(next(begin), end, "Analyzer Error! После ключевого слова \"Fourth\" не может идти " + TypeToStr(next(begin)) + ". "
                                                                     + begin->get()->value + " " + next(begin)->get()->value);
                 else if(!Expect(next(begin), end, TokenType::Types::Number) && !FirstIteration){
                     if(Expect(next(begin), end, ',')){
                         if(next(begin, 2) == end)
-                            return SendError(next(begin), end, "Analyzer Error! После запятой в конце звена ожидается целое число, либо очередное звено.");
+                            return Logger::SendError(next(begin), end, "Analyzer Error! После запятой в конце звена ожидается целое число, либо очередное звено.");
                         if(!Expect(next(begin, 2), end, TokenType::Types::Number) && !Expect(next(begin, 3), end, ','))
                             break;
                     }
@@ -142,21 +126,21 @@ std::tuple<int, int, QString> Analyzer::AnalyzeLinks(Viterator& begin, Viterator
 
         if(!HasLink){
             if(begin == end)
-                return SendError(begin, end, "Analyzer Error! После ключевого слова \"Start\" ожидается звено.");
+                return Logger::SendError(begin, end, "Analyzer Error! После ключевого слова \"Start\" ожидается звено.");
             else
-                return SendError(begin, end, "Analyzer Error! После ключевого слова \"Start\" не может идти " + TypeToStr(begin) + ". "
+                return Logger::SendError(begin, end, "Analyzer Error! После ключевого слова \"Start\" не может идти " + TypeToStr(begin) + ". "
                                                                       + begin->get()->value);
         }
         if(HasLink && !Expect(++begin, end, ','))
-            return SendOk();
+            return Logger::SendOk();
         else if(!Expect(next(begin), end, TokenType::Types::First)  &&
                 !Expect(next(begin), end, TokenType::Types::Second) &&
                 !Expect(next(begin), end, TokenType::Types::Third)  &&
                 !Expect(next(begin), end, TokenType::Types::Fourth)){
             if(next(begin) == end)
-                return SendError(next(begin), end, "Analyzer Error! После запятой в конце звена ожидается очередное звено.");
+                return Logger::SendError(next(begin), end, "Analyzer Error! После запятой в конце звена ожидается очередное звено.");
             else
-                return SendError(next(begin), end, "Analyzer Error! После запятой в конце звена не может идти "
+                return Logger::SendError(next(begin), end, "Analyzer Error! После запятой в конце звена не может идти "
                                                       + TypeToStr(next(begin)) + ". "
                                                       + begin->get()->value + " " + next(begin)->get()->value);
         }
@@ -171,24 +155,24 @@ std::tuple<int, int, QString> Analyzer::AnalyzeOperators(Viterator& begin, Viter
     while(true){
 
         if(begin == end && !HasOperator)
-            return SendError(begin, end, "Analyzer Error! После звеньев ожидается оператор.");
+            return Logger::SendError(begin, end, "Analyzer Error! После звеньев ожидается оператор.");
         if(Expect(begin, end, TokenType::Types::Stop) && !HasOperator)
-            return SendError(begin, end, "Analyzer Error! После звеньев ожидается оператор. "
+            return Logger::SendError(begin, end, "Analyzer Error! После звеньев ожидается оператор. "
                                                                         + begin->get()->value);
 
         if(Expect(begin, end, TokenType::Types::Number)){
             while(true){
                 if(++begin == end)
-                    return SendError(begin, end, "Analyzer Error! После метки ожидается очередная метка, либо двоеточие.");
+                    return Logger::SendError(begin, end, "Analyzer Error! После метки ожидается очередная метка, либо двоеточие.");
                 else if(!Expect(begin, end, TokenType::Types::Number) && !Expect(begin, end, ':'))
-                    return SendError(begin, end, "Analyzer Error! После метки не может идти " + TypeToStr(begin) + ". "
+                    return Logger::SendError(begin, end, "Analyzer Error! После метки не может идти " + TypeToStr(begin) + ". "
                                                                             + prev(begin)->get()->value + " " + begin->get()->value);
                 else if(Expect(begin, end, ':')){
                     if(next(begin) == end)
-                        return SendError(next(begin), end, "Analyzer Error! После двоеточия ожидается переменная.");
+                        return Logger::SendError(next(begin), end, "Analyzer Error! После двоеточия ожидается переменная.");
                     else
                         if(!Expect(next(begin), end, TokenType::Types::Variable))
-                            return SendError(begin, end, "Analyzer Error! После двоеточия не может идти " + TypeToStr(next(begin)) + ". "
+                            return Logger::SendError(begin, end, "Analyzer Error! После двоеточия не может идти " + TypeToStr(next(begin)) + ". "
                                                                             + begin->get()->value + " " + next(begin)->get()->value);
                     break;
                 }
@@ -197,7 +181,7 @@ std::tuple<int, int, QString> Analyzer::AnalyzeOperators(Viterator& begin, Viter
         }
 
         else if(!Expect(begin, end, TokenType::Types::Variable))
-            return SendError(begin, end, "Analyzer Error! Метка должна являться целым числом. "
+            return Logger::SendError(begin, end, "Analyzer Error! Метка должна являться целым числом. "
                                                                         + begin->get()->value);
 
         std::vector<Token> expression; bool FirstIteration = true;
@@ -205,15 +189,15 @@ std::tuple<int, int, QString> Analyzer::AnalyzeOperators(Viterator& begin, Viter
         expression.push_back(*begin);
 
         if(++begin == end)
-            return SendError(begin, end, "Analyzer Error! После переменной ожидается знак равенства.");
+            return Logger::SendError(begin, end, "Analyzer Error! После переменной ожидается знак равенства.");
 
         else if(!Expect(begin, end, '='))
-            return SendError(begin, end, "Analyzer Error! После переменной не может идти " + TypeToStr(begin) + ". "
+            return Logger::SendError(begin, end, "Analyzer Error! После переменной не может идти " + TypeToStr(begin) + ". "
                                                         + prev(begin)->get()->value + " " + begin->get()->value);
 
         while(true){
             if(next(begin) == end && FirstIteration)
-                return SendError(begin, end, "Analyzer Error! Выражение должно начинаться либо с вещественного числа, либо с функции, "
+                return Logger::SendError(begin, end, "Analyzer Error! Выражение должно начинаться либо с вещественного числа, либо с функции, "
                                              "либо с переменной, либо с операции инвертирования, либо с операции отрицания.");
 
             else if((!Expect(next(begin), end, TokenType::Types::Real) &&
@@ -221,19 +205,19 @@ std::tuple<int, int, QString> Analyzer::AnalyzeOperators(Viterator& begin, Viter
                 !Expect(next(begin), end, TokenType::Types::Variable)  &&
                 !Expect(next(begin), end, '!')                         &&
                 !Expect(next(begin), end, '-')) && FirstIteration)
-                        return SendError(next(begin), end, "Analyzer Error! После знака равенства не может идти " + TypeToStr(next(begin)) + ". "
+                        return Logger::SendError(next(begin), end, "Analyzer Error! После знака равенства не может идти " + TypeToStr(next(begin)) + ". "
                                                                                             + next(begin)->get()->value);
 
             else if(Expect(next(begin), end, TokenType::Types::Real)){
                 if(next(begin, 2) == end)
-                    return SendError(next(begin), end, "Analyzer Error! После вещественного числа ожидается операция, "
+                    return Logger::SendError(next(begin), end, "Analyzer Error! После вещественного числа ожидается операция, "
                                                        "либо ключевое слово \"Stop\".");
 
                 else if((!Expect(next(begin, 2), end, TokenType::Types::Operation) &&
                    !Expect(next(begin, 2), end, ';')                          &&
                    !Expect(next(begin, 2), end, TokenType::Types::Stop))      ||
                     Expect(next(begin, 2), end, '!')){
-                        return SendError(next(begin, 2), end, "Analyzer error! После вещественного числа не может идти " + TypeToStr(next(begin, 2)) + ". "
+                        return Logger::SendError(next(begin, 2), end, "Analyzer error! После вещественного числа не может идти " + TypeToStr(next(begin, 2)) + ". "
                                                                         + next(begin)->get()->value + " " + next(begin, 2)->get()->value);
                 }
                 FirstIteration = false;
@@ -242,14 +226,14 @@ std::tuple<int, int, QString> Analyzer::AnalyzeOperators(Viterator& begin, Viter
 
             else if(Expect(next(begin), end, TokenType::Types::Variable)){
                 if(next(begin, 2) == end)
-                    return SendError(next(begin, 2), end, "Analyzer Error! После переменной ожидается операция, "
+                    return Logger::SendError(next(begin, 2), end, "Analyzer Error! После переменной ожидается операция, "
                                                           "либо ключевое слово \"Stop\".");
 
                 else if((!Expect(next(begin, 2), end, TokenType::Types::Operation) &&
                    !Expect(next(begin, 2), end, ';')                          &&
                    !Expect(next(begin, 2), end, TokenType::Types::Stop))      ||
                     Expect(next(begin, 2), end, '!')){
-                        return SendError(next(begin, 2), end, "Analyzer error! После переменной не может идти " + TypeToStr(next(begin, 2)) + ". "
+                        return Logger::SendError(next(begin, 2), end, "Analyzer error! После переменной не может идти " + TypeToStr(next(begin, 2)) + ". "
                                                                         + next(begin)->get()->value + " " + next(begin, 2)->get()->value);
                 }
                 FirstIteration = false;
@@ -258,14 +242,14 @@ std::tuple<int, int, QString> Analyzer::AnalyzeOperators(Viterator& begin, Viter
 
             else if(Expect(next(begin), end, TokenType::Types::Function)){
                 if(next(begin, 2) == end)
-                    return SendError(next(begin, 2), end, "Analyzer Error! После функции ожидается вещественное число, либо переменная, "
+                    return Logger::SendError(next(begin, 2), end, "Analyzer Error! После функции ожидается вещественное число, либо переменная, "
                                                           "либо другая функция, либо операции \"!\" и \"-\".");
 
                 else if(!Expect(next(begin, 2), end, TokenType::Types::Function) &&
                    !Expect(next(begin, 2), end, TokenType::Types::Real)          &&
                    !Expect(next(begin, 2), end, TokenType::Types::Variable)      &&
                    !Expect(next(begin, 2), end, TokenType::Types::Function)){
-                    return SendError(next(begin, 2), end, "Analyzer error! После функции не может идти " + TypeToStr(next(begin, 2)) + ". "
+                    return Logger::SendError(next(begin, 2), end, "Analyzer error! После функции не может идти " + TypeToStr(next(begin, 2)) + ". "
                                                                     + next(begin)->get()->value + " " + next(begin, 2)->get()->value);
                 }
                 FirstIteration = false;
@@ -302,9 +286,9 @@ std::tuple<int, int, QString> Analyzer::AnalyzeOperators(Viterator& begin, Viter
 
                 if(next(begin, 2) == end){
                     return (Expect(next(begin), end, '!')) ?
-                                SendError(next(begin, 2), end, "Analyzer Error! После " + str_type +
+                                Logger::SendError(next(begin, 2), end, "Analyzer Error! После " + str_type +
                                           " ожидается функция, либо переменная, либо вещественное число.") :
-                                SendError(next(begin, 2), end, "Analyzer Error! После " + str_type +
+                                Logger::SendError(next(begin, 2), end, "Analyzer Error! После " + str_type +
                                           " ожидается функция, либо переменная, либо вещественное число, либо операция инвертирования.");
                 }
 
@@ -313,7 +297,7 @@ std::tuple<int, int, QString> Analyzer::AnalyzeOperators(Viterator& begin, Viter
                     if(!Expect(next(begin, 2), end, TokenType::Types::Function) &&
                        !Expect(next(begin, 2), end, TokenType::Types::Real)     &&
                        !Expect(next(begin, 2), end, TokenType::Types::Variable))
-                        return SendError(next(begin, 2), end, "Analyzer Error! После операции инвертирования не может идти " + TypeToStr(next(begin, 2)) + ". "
+                        return Logger::SendError(next(begin, 2), end, "Analyzer Error! После операции инвертирования не может идти " + TypeToStr(next(begin, 2)) + ". "
                                                                                         + next(begin)->get()->value + " " + next(begin, 2)->get()->value);
                 }
 
@@ -321,7 +305,7 @@ std::tuple<int, int, QString> Analyzer::AnalyzeOperators(Viterator& begin, Viter
                         !Expect(next(begin, 2), end, TokenType::Types::Real)     &&
                         !Expect(next(begin, 2), end, TokenType::Types::Variable) &&
                         !Expect(next(begin, 2), end, '!')){
-                        return SendError(next(begin, 2), end, "Analyzer Error! После " + str_type + " не может идти " + TypeToStr(next(begin, 2)) + ". "
+                        return Logger::SendError(next(begin, 2), end, "Analyzer Error! После " + str_type + " не может идти " + TypeToStr(next(begin, 2)) + ". "
                                                                                     + next(begin)->get()->value + " " + next(begin, 2)->get()->value);
                 }
                 FirstIteration = false;
@@ -330,9 +314,9 @@ std::tuple<int, int, QString> Analyzer::AnalyzeOperators(Viterator& begin, Viter
 
             else if(Expect(next(begin), end, ';')){
                 if(next(begin, 2) == end)
-                    return SendError(next(begin), end, "Analyzer error! После точки с запятой ожидается очередной оператор.");
+                    return Logger::SendError(next(begin), end, "Analyzer error! После точки с запятой ожидается очередной оператор.");
                 else if(!Expect(next(begin, 2), end, TokenType::Types::Number) && !Expect(next(begin, 2), end, TokenType::Types::Variable))
-                    return SendError(next(begin, 2), end, "Analyzer error! После точки с запятой в конце оператора не может идти " + TypeToStr(next(begin, 2)) + ". "
+                    return Logger::SendError(next(begin, 2), end, "Analyzer error! После точки с запятой в конце оператора не может идти " + TypeToStr(next(begin, 2)) + ". "
                                                                                                 + next(begin, 2)->get()->value);
                 ++begin;
                 break;
@@ -348,7 +332,7 @@ std::tuple<int, int, QString> Analyzer::AnalyzeOperators(Viterator& begin, Viter
         ++begin;
 
         if((begin == end || Expect(begin, end, TokenType::Types::Stop)) && HasOperator)
-            return SendOk();
+            return Logger::SendOk();
     }
 }
 
